@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { HomePage } from "./components/HomePage";
-import { Box, Alert } from "@mui/material";
+import { Box, Alert, Dialog, DialogTitle, DialogContent, DialogActions, Button, DialogContentText } from "@mui/material";
 import { getDate, editDate, deleteDate } from "./api";
 import { InputComponent } from "./components/InputComponent";
 import { ButtonComponent } from "./components/ButtonComponent";
@@ -24,6 +24,7 @@ export const App = () => {
 
   const [allert, setAllert] = useState("");
   const [editFields, setEditFields] = useState([]);
+  const [open, setOpen] = useState(false);
 
   const fetchDate = async (params) => {
     sessionStorage.removeItem("editFields");
@@ -36,8 +37,8 @@ export const App = () => {
       ...el,
       "edit_remainder": (
         <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-          <InputComponent defaulValue={el.qty} id={el.edit_remainder} onChangeField={onChangeField} />
-          <ButtonComponent disabled={true} />
+          <InputComponent defaulValue="" id={el.edit_remainder} onChangeField={onChangeField} />
+          <ButtonComponent disabled={true}  />
         </Box>
       ),
     }));
@@ -47,10 +48,19 @@ export const App = () => {
   };
   const onChangeField = (id, value) => {
     setEditFields((prev) => {
-      return [
-        ...prev,
-        { id, value: Number(value) },
-      ];
+      const find = prev?.find((el) => el.id === id);
+      if (!find)
+        return [
+          ...prev,
+          { id, value: Number(value) },
+        ];
+      const res = prev?.map((el) => {
+        if (el.id === id) {
+          return { id, value: Number(value) };
+        }
+        return el;
+      });
+      return res;
     });
   };
   const saveField = async (id) => {
@@ -88,7 +98,7 @@ export const App = () => {
       ...el,
       "edit_remainder": (
         <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-          <InputComponent defaulValue={el.qty} id={el.edit_remainder} onChangeField={onChangeField} />
+          <InputComponent defaulValue="" id={el.edit_remainder} onChangeField={onChangeField} />
           <ButtonComponent disabled={true} />
         </Box>
       ),
@@ -113,6 +123,7 @@ export const App = () => {
     };
     setEditFields([]);
     setRows([]);
+    setRowSelection({});
     const data = await deleteDate(params);
     setLoading(false);
     if (data.error) return setAllert(data.error["ajax-errors"]);
@@ -121,7 +132,7 @@ export const App = () => {
       ...el,
       "edit_remainder": (
         <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-          <InputComponent defaulValue={el.qty} id={el.edit_remainder} onChangeField={onChangeField} />
+          <InputComponent defaulValue="" id={el.edit_remainder} onChangeField={onChangeField} />
           <ButtonComponent disabled={true} />
         </Box>
       ),
@@ -132,7 +143,9 @@ export const App = () => {
   };
 
   useEffect(() => {
+    const items = JSON.parse(sessionStorage.getItem("editFields"));
     fetchDate({
+      fields: items,
       filters: columnFilters,
       sorting,
       take: pagination.pageSize,
@@ -177,11 +190,45 @@ export const App = () => {
     setRows(custom_rows);
   }, [editFields]);
 
+  const openModal = (value) => {
+    const items = JSON.parse(sessionStorage.getItem("editFields"));
+    if (items?.length) {
+      sessionStorage.setItem("pageIndex", value - 1);
+      sessionStorage.setItem("page", value);
+      return setOpen(true);
+    }
+    setPagination((prev) => {
+      return {...prev, pageIndex: value - 1, page: value};
+    });
+  };
+  const closeModal = () => {
+    const pageIndex = JSON.parse(sessionStorage.getItem("pageIndex"));
+    const page = JSON.parse(sessionStorage.getItem("page"));
+    sessionStorage.setItem("editFields", JSON.stringify([]))
+    setPagination((prev) => {
+      return {...prev, pageIndex, page };
+    });
+    sessionStorage.removeItem("pageIndex");
+    sessionStorage.removeItem("page");
+    setOpen(false);
+  };
+  const saveModal = () => {
+    const pageIndex = JSON.parse(sessionStorage.getItem("pageIndex"));
+    const page = JSON.parse(sessionStorage.getItem("page"));
+    setPagination((prev) => {
+      return {...prev, pageIndex, page };
+    });
+    sessionStorage.removeItem("pageIndex");
+    sessionStorage.removeItem("page");
+    setOpen(false);
+  };
+
   if (allert) {
     return <Alert severity="error">{allert}</Alert>;
   }
 
   return (
+    <>
       <HomePage
         loading={loading}
         setLoading={setLoading}
@@ -202,6 +249,29 @@ export const App = () => {
         submit={saveField}
         remove={remove}
         editFields={editFields}
+        openModal={openModal}
       />
+      <Dialog
+        open={open}
+        onClose={() => setOpen(false)}
+        aria-labelledby="alert-dialog-title"
+        aria-describedby="alert-dialog-description"
+      >
+        <DialogTitle id="alert-dialog-title">
+          Вы хотите сохранить внесенные изменения?
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText id="alert-dialog-description">
+            В случае отказа все внесенные изменения не будут сохранены.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={saveModal}>Сохранить</Button>
+          <Button autoFocus onClick={closeModal}>
+            Не сохранять
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
   );
 };

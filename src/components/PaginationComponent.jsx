@@ -1,11 +1,9 @@
 import Pagination from "@mui/material/Pagination";
 
 export const PaginationComponent = (props) => {
-    const { setPagination, pagination, totalRecords } = props;
+    const { pagination, totalRecords, openModal } = props;
     const change = (value) => {
-        setPagination((prev) => {
-            return {...prev, pageIndex: value - 1, page: value};
-        });
+        openModal(value);
     };
 
     return (

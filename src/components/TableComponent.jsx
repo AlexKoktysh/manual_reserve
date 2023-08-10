@@ -18,6 +18,7 @@ export const TableComponent = (props) => {
         rows,
         rowSelection,
         setRowSelection,
+        openModal,
     } = props;
 
     return (
@@ -51,7 +52,7 @@ export const TableComponent = (props) => {
                 rowsPerPageOptions: [5, 10, 20],
                 width: "100%",
                 className: "pagination",
-                ActionsComponent: () => PaginationComponent({ setPagination, pagination, totalRecords })
+                ActionsComponent: () => PaginationComponent({ setPagination, pagination, totalRecords, openModal })
             }}
         />
     );
